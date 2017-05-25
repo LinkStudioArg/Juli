@@ -1,0 +1,25 @@
+ToDo:
+
+Level:
+	Implement fast level design
+	Add more Items
+	Maybe Other Backgrounds
+	Add Collectables
+
+Enemies:
+	Reimplement enemy mechanic and power (who da fuq will be the new enemies?)
+	Different classes of enemies
+	Implement per advance level constraint (TNMT like)
+	One boss will be me!
+	Implement more level bosses
+
+Player:
+	Implement weapon/magic powers for the player to destroy everything
+	Implement respawn (should have 3 respawn per level constraint?)
+	Change control setup to suit Juli's preferences
+Multiplayer
+	Try to implement this on Lan
+	If not possible, implement on one keyboard	
+
+Others:
+	Implement funny dialog bubbles that tigger over time or on specific levels.
