@@ -4,8 +4,9 @@ using UnityEngine;
 
 public class MapLoader : MonoBehaviour {
     public Texture2D mapTexture;
-    public List<ColorToPrefab> colorToPrefabsList;
+    public Transform Holder;
 
+    public List<ColorToPrefab> colorToPrefabsList;
     [System.Serializable]
     public struct ColorToPrefab
     {
@@ -55,6 +56,7 @@ public class MapLoader : MonoBehaviour {
             if(ctp.color.Equals(color))
             {
                 GameObject go = Instantiate<GameObject>(ctp.prefab, new Vector3(x, y, 0), Quaternion.identity);
+                go.transform.SetParent(Holder);
                 return;
             }
         }

@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class AttackController : MonoBehaviour {
 	Animator anim;
@@ -7,27 +9,31 @@ public class AttackController : MonoBehaviour {
 	// Use this for initialization
 
 	bool isAttacking = false;
-	bool isAxeAttacking = false;
-	public float AxeAttackRate;
-	public Transform AxePoint;
+	bool isThrowing = false;
+	public float throwAttackRate;
+	public Transform throwPoint;
 
 	public int maxAmmo = 20;
-	public int currentAmmo = 2;
 
 	public float attackRange;
 	public LayerMask enemyLayerMask;
-	public GameObject AxePrefab;
 
 	GameManager gameManager;
 
-	// Update is called once per frame
-	void Start()
-	{
+    public List<ThrowableObjectSlot> throwableObjectsList;
 
-		maxAmmo = 20;
-		currentAmmo = 2;
+    public int SelectedThrowableIndex;
+
+    public ThrowableObjectSlot SelectedThrowable;
+    // Update is called once per frame
+    void Start()
+	{
+        throwableObjectsList = new List<ThrowableObjectSlot>();
+        for (int i = 0; i < 5; i++)
+        {
+            throwableObjectsList.Add(new ThrowableObjectSlot());
+        }
 		gameManager = GameObject.Find ("GameManager").GetComponent<GameManager> ();
-		gameManager.UpdateAmmo (currentAmmo);
 		anim = GetComponent<Animator> ();
 
 	}
@@ -43,16 +49,15 @@ public class AttackController : MonoBehaviour {
 			anim.SetBool ("attack", false);
 		}
 
-		if (!isAxeAttacking && Input.GetButton ("Fire2") &&currentAmmo > 0) {
-
+		if (!isThrowing && Input.GetButtonDown ("Fire2")  && !SelectedThrowable.isEmpty && SelectedThrowable.ammo > 0) {
 			anim.SetBool ("AxeAttack", true);
-			currentAmmo--;
-			gameManager.UpdateAmmo (currentAmmo);
-			StartCoroutine (AxeAttack());
+            StartCoroutine(ThrowAttack());
+            AddAmmo(-1, SelectedThrowable.throwableObject.id);
+        }
 
-		} 
+        //make selection
 
-	}
+    }
 
 	public void Attack(){
 		//Debug.Log ("Called");
@@ -69,29 +74,165 @@ public class AttackController : MonoBehaviour {
 	
 	}
 
-	public void DeactiveAxeAnim()
+    public Image throwWeaponImage;
+    public Text throwWeaponText;
+    private void UpdateThrowUI()
+    {
+        if (!SelectedThrowable.isEmpty)
+        {
+            throwWeaponImage.sprite = SelectedThrowable.throwableObject.image;
+            throwWeaponText.text = SelectedThrowable.ammo.ToString();
+        }
+        else
+        {
+            throwWeaponText.text = "";
+            throwWeaponImage = null;
+        }
+    }
+
+    private bool isThrowableListEmpty()
+    {
+        foreach (ThrowableObjectSlot slot in throwableObjectsList)
+        {
+            if (!slot.isEmpty)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void SelectSlot(int i)
+    {
+        if (i > 4 || i < 0)
+            return;
+        else { 
+
+            Debug.Log("lalala");
+            SelectedThrowableIndex = i;
+            SelectedThrowable = throwableObjectsList[SelectedThrowableIndex];
+        }
+    }
+
+    public void DeactiveAxeAnim()
 	{
 		anim.SetBool ("AxeAttack", false);
 	}
 
-	IEnumerator AxeAttack()
+	IEnumerator ThrowAttack()
 	{
-		isAxeAttacking = true;
-		yield return new WaitForSeconds (0.1f);
-		Instantiate (AxePrefab, new Vector3(AxePoint.position.x, AxePoint.position.y, 2), Quaternion.identity);
-
-		yield return new WaitForSeconds (AxeAttackRate);
-		isAxeAttacking = false;
+        isThrowing = true;
+//		yield return new WaitForSeconds (0.1f);
+		Instantiate (SelectedThrowable.throwableObject, new Vector3(throwPoint.position.x, throwPoint.position.y, 2), Quaternion.identity);
+        yield return new WaitForSeconds (throwAttackRate);
+        isThrowing = false;
 	}
 
-	public void AddAmmo(int amount){
-		currentAmmo += amount;
-		if (currentAmmo > maxAmmo) {
-			currentAmmo = maxAmmo;
-		} else if (currentAmmo < 0) {
-			currentAmmo = 0;
-		}
+    public bool hasWeapon(int id)
+    {
+        Debug.Log(throwableObjectsList[0].isEmpty);
 
-		gameManager.UpdateAmmo (currentAmmo);
-	}
+        foreach (ThrowableObjectSlot slot in throwableObjectsList)
+        {
+
+            if (!slot.isEmpty)
+            {
+                if (slot.throwableObject.id == id)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private ThrowableObjectSlot getSlotWithWeapon(int id)
+    {
+        foreach (ThrowableObjectSlot slot in throwableObjectsList)
+        {
+            if (!slot.isEmpty)
+            {
+                if (slot.throwableObject.id == id)
+                {
+                    return slot;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void AddAmmo(int amount, int id){
+
+        ThrowableObjectSlot slot = getSlotWithWeapon(id);
+        if (slot != null)
+        {
+            //slot.ammo += amount;
+            if ((slot.ammo + amount) > maxAmmo)
+                slot.ammo = maxAmmo;
+            else if ((slot.ammo + amount) == 0)
+            {
+                slot.Empty();
+            }
+            else
+                slot.ammo += amount;
+            UpdateThrowUI();
+
+        }
+    }
+
+    public void AddWeapon(Throwable weapon)
+    {
+        if (hasWeapon(weapon.id))
+        {
+            AddAmmo(5, weapon.id);
+        }
+        else
+        {
+            ThrowableObjectSlot slot = FindEmptySlot();
+            if (slot != null)
+            {
+                slot.isEmpty = false;
+                slot.throwableObject = weapon;
+                slot.ammo = 5;
+                SelectedThrowable = slot;
+                UpdateThrowUI();
+            }
+        }
+    }
+
+    private ThrowableObjectSlot FindEmptySlot()
+    {
+        foreach (ThrowableObjectSlot slot in throwableObjectsList)
+        {
+            if (slot.isEmpty)
+            {
+                slot.Empty();
+                return slot;
+            }
+        }
+        return null;
+    }
+}
+[System.Serializable]
+public class ThrowableObjectSlot
+{
+    public bool isEmpty;
+    public Throwable throwableObject;
+    public int ammo;
+
+    public ThrowableObjectSlot()
+    {
+        Debug.Log("Created");
+        isEmpty = true;
+        throwableObject = null;
+        ammo = 0;
+    }
+
+    public void Empty()
+    {
+
+        isEmpty = true;
+        throwableObject = null;
+        ammo = 0;
+    }
 }
