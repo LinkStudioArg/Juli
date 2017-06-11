@@ -30,8 +30,7 @@ public class Items : MonoBehaviour {
                         Destroy(this.gameObject);
                         break;
                 case type.WEAPON:
-                    Debug.Log("hit");
-                    coll.gameObject.GetComponent<AttackController>().AddWeapon(weapon);
+                    coll.gameObject.GetComponent<AttackController>().AddWeapon(weapon, amount);
                     Destroy(this.gameObject);
 
                     break;

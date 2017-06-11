@@ -5,7 +5,11 @@ using UnityEngine;
 public class MapLoader : MonoBehaviour {
     public Texture2D mapTexture;
     public Transform Holder;
-
+    private void Start()
+    {
+        //ClearMap();
+        //LoadMap();
+    }
     public List<ColorToPrefab> colorToPrefabsList;
     [System.Serializable]
     public struct ColorToPrefab
@@ -13,10 +17,20 @@ public class MapLoader : MonoBehaviour {
         public Color32 color;
         public GameObject prefab;
     }
-
-    private void Start()
+    [ContextMenu("ClearMap")]
+    public void ClearMap()
     {
-        LoadMap();
+        List<GameObject> list = new List<GameObject>();
+        for (int i = 0; i < Holder.childCount; i++)
+        {
+            list.Add(Holder.GetChild(i).gameObject);
+        }
+
+        foreach (GameObject child in list)
+        {
+
+            DestroyImmediate(child);
+        }
     }
 
     public void EmptyMap()
@@ -28,7 +42,7 @@ public class MapLoader : MonoBehaviour {
             Destroy(c.gameObject);
         }
     }
-
+    [ContextMenu("LoadMap")]
     public void LoadMap()
     {
         EmptyMap();

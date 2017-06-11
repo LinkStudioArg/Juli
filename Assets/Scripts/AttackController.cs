@@ -5,33 +5,65 @@ using UnityEngine.UI;
 
 public class AttackController : MonoBehaviour {
 	Animator anim;
-	public int damage = 100;
-	// Use this for initialization
 
-	bool isAttacking = false;
+	public int damage = 100;
+
+    bool isAttacking = false;
+
 	bool isThrowing = false;
+
 	public float throwAttackRate;
+
 	public Transform throwPoint;
 
-	public int maxAmmo = 20;
+	public int maxAmmo = 100;
 
 	public float attackRange;
+
 	public LayerMask enemyLayerMask;
 
 	GameManager gameManager;
 
     public List<ThrowableObjectSlot> throwableObjectsList;
 
-    public int SelectedThrowableIndex;
+    private int SelectedThrowableIndex;
+
+    public int m_selectedThrowableIndex {
+        get {
+            return SelectedThrowableIndex;
+        }
+        set
+        {
+            if (value > 4)
+            {
+                SelectedThrowableIndex = 0;
+            }
+            else
+            {
+                if (value < 0)
+                {
+                    SelectedThrowableIndex = 4;
+                }
+                else
+                    SelectedThrowableIndex = value;
+            }
+           
+           
+        }
+    }
 
     public ThrowableObjectSlot SelectedThrowable;
-    // Update is called once per frame
+
+    public Image throwWeaponImage;
+
+    public Text throwWeaponText;
+
     void Start()
 	{
         throwableObjectsList = new List<ThrowableObjectSlot>();
         for (int i = 0; i < 5; i++)
         {
-            throwableObjectsList.Add(new ThrowableObjectSlot());
+            throwableObjectsList.Add(new ThrowableObjectSlot(i));
         }
 		gameManager = GameObject.Find ("GameManager").GetComponent<GameManager> ();
 		anim = GetComponent<Animator> ();
@@ -39,7 +71,7 @@ public class AttackController : MonoBehaviour {
 	}
 
 	void Update () {
-
+        Debug.Log(SelectedThrowableIndex);
 		if (!isAttacking && Input.GetButton ("Fire1")) {
 			
 			anim.SetBool ("attack", true);
@@ -49,12 +81,15 @@ public class AttackController : MonoBehaviour {
 			anim.SetBool ("attack", false);
 		}
 
-		if (!isThrowing && Input.GetButtonDown ("Fire2")  && !SelectedThrowable.isEmpty && SelectedThrowable.ammo > 0) {
-			anim.SetBool ("AxeAttack", true);
-            StartCoroutine(ThrowAttack());
-            AddAmmo(-1, SelectedThrowable.throwableObject.id);
+		if (!isThrowing && Input.GetButtonDown ("Fire2")  && SelectedThrowable!= null) {
+            if (!SelectedThrowable.isEmpty && SelectedThrowable.ammo > 0)
+            {
+                anim.SetBool("AxeAttack", true);
+                StartCoroutine(ThrowAttack());
+                AddAmmo(-1, SelectedThrowable.throwableObject.id);
+            }
         }
-
+        changeWeapon();
         //make selection
 
     }
@@ -74,19 +109,26 @@ public class AttackController : MonoBehaviour {
 	
 	}
 
-    public Image throwWeaponImage;
-    public Text throwWeaponText;
     private void UpdateThrowUI()
     {
-        if (!SelectedThrowable.isEmpty)
+        if (SelectedThrowable != null)
         {
-            throwWeaponImage.sprite = SelectedThrowable.throwableObject.image;
-            throwWeaponText.text = SelectedThrowable.ammo.ToString();
+            if (!SelectedThrowable.isEmpty)
+            {
+                throwWeaponImage.sprite = SelectedThrowable.throwableObject.image;
+                throwWeaponImage.enabled = true;
+                throwWeaponText.text = "x " + SelectedThrowable.ammo.ToString();
+            }
+            else
+            {
+                throwWeaponText.text = "";
+                throwWeaponImage.enabled = false;
+            }
         }
         else
         {
             throwWeaponText.text = "";
-            throwWeaponImage = null;
+            throwWeaponImage.enabled = false;
         }
     }
 
@@ -104,14 +146,10 @@ public class AttackController : MonoBehaviour {
 
     private void SelectSlot(int i)
     {
-        if (i > 4 || i < 0)
-            return;
-        else { 
 
-            Debug.Log("lalala");
-            SelectedThrowableIndex = i;
-            SelectedThrowable = throwableObjectsList[SelectedThrowableIndex];
-        }
+        m_selectedThrowableIndex = i;
+            SelectedThrowable = throwableObjectsList[m_selectedThrowableIndex];
+        
     }
 
     public void DeactiveAxeAnim()
@@ -119,14 +157,16 @@ public class AttackController : MonoBehaviour {
 		anim.SetBool ("AxeAttack", false);
 	}
 
-	IEnumerator ThrowAttack()
-	{
+
+    IEnumerator ThrowAttack()
+    {
         isThrowing = true;
-//		yield return new WaitForSeconds (0.1f);
-		Instantiate (SelectedThrowable.throwableObject, new Vector3(throwPoint.position.x, throwPoint.position.y, 2), Quaternion.identity);
-        yield return new WaitForSeconds (throwAttackRate);
+        Throwable obj = Instantiate<Throwable>(SelectedThrowable.throwableObject, throwPoint.position, Quaternion.identity);
+       
+            obj.dir = throwPoint.position - transform.position;
+        yield return new WaitForSeconds(throwAttackRate);
         isThrowing = false;
-	}
+    }
 
     public bool hasWeapon(int id)
     {
@@ -180,11 +220,11 @@ public class AttackController : MonoBehaviour {
         }
     }
 
-    public void AddWeapon(Throwable weapon)
+    public void AddWeapon(Throwable weapon, int amount)
     {
         if (hasWeapon(weapon.id))
         {
-            AddAmmo(5, weapon.id);
+            AddAmmo(amount, weapon.id);
         }
         else
         {
@@ -193,8 +233,8 @@ public class AttackController : MonoBehaviour {
             {
                 slot.isEmpty = false;
                 slot.throwableObject = weapon;
-                slot.ammo = 5;
-                SelectedThrowable = slot;
+                slot.ammo = amount;
+                SelectSlot(slot.id);
                 UpdateThrowUI();
             }
         }
@@ -212,27 +252,17 @@ public class AttackController : MonoBehaviour {
         }
         return null;
     }
-}
-[System.Serializable]
-public class ThrowableObjectSlot
-{
-    public bool isEmpty;
-    public Throwable throwableObject;
-    public int ammo;
 
-    public ThrowableObjectSlot()
+    private void changeWeapon()
     {
-        Debug.Log("Created");
-        isEmpty = true;
-        throwableObject = null;
-        ammo = 0;
-    }
-
-    public void Empty()
-    {
-
-        isEmpty = true;
-        throwableObject = null;
-        ammo = 0;
+        if (Input.GetButtonDown("ScrollUp"))
+        {
+            SelectSlot(m_selectedThrowableIndex + 1);
+        }
+        else if (Input.GetButtonDown("ScrollDown"))
+        {
+            SelectSlot(m_selectedThrowableIndex - 1);
+        }
+        UpdateThrowUI();
     }
 }

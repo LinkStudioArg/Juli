@@ -64,7 +64,7 @@ public class CameraFollow : MonoBehaviour {
 
 	public Vector2 focusAreaSize;
 	private FocusArea focusArea;
-    
+    public float speed = 0.1f;
 
 
     void Start()
@@ -80,7 +80,7 @@ public class CameraFollow : MonoBehaviour {
 
 		focusArea.Update (targetCollider.bounds);
 		Vector2 focusPosition =  focusArea.center + Vector2.right * offset.x + Vector2.up * offset.y;//(focusArea.x + offset.x, focusArea.center.y + offset.y)
-		transform.position = Vector3.Lerp(transform.position, (Vector3)focusPosition + Vector3.forward * -10, 0.1f);
+		transform.position = Vector3.Lerp(transform.position, (Vector3)focusPosition + Vector3.forward * -10, speed);
 	}
 
 	void OnDrawGizmos()
